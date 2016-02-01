@@ -178,6 +178,15 @@ $.extend( RowReorder.prototype, {
 				return false;
 			}
 		} );
+		
+		// check if sorting should reorder data
+    		// if it should reorder, then it adds listener for sorting, and when data has been 
+    		// sorted, it updates data with new row numbers.
+    		if (that.c.reorderOnSort) { 
+      			$( table ).on( 'order.dt', function (e, table, sort) {
+        			that._ReNumerate();
+      			});
+    		}
 
 		dt.on( 'destroy.rowReorder', function () {
 			$(dt.table().container()).off( '.rowReorder' );
@@ -243,6 +252,7 @@ $.extend( RowReorder.prototype, {
 		// to reduce reflows
 		var tableWidth = target.outerWidth();
 		var tableHeight = target.outerHeight();
+		var tableZIndex = target.zIndex();
 		var sizes = target.children().map( function () {
 			return $(this).width();
 		} );
@@ -250,6 +260,7 @@ $.extend( RowReorder.prototype, {
 		clone
 			.width( tableWidth )
 			.height( tableHeight )
+			.zIndex( tableZIndex )
 			.find('tr').children().each( function (i) {
 				this.style.width = sizes[i]+'px';
 			} );
@@ -290,7 +301,30 @@ $.extend( RowReorder.prototype, {
 			left: left
 		} );
 	},
-
+	
+	 /**
+	  * Update the items position based on new order
+	  * 
+	  * @private
+	  */
+ 	_ReNumerate: function ()
+  	{
+	    	var i, ien,
+	    	dt = this.s.dt;
+	
+		// Calculate the difference
+	    	var Nodes = $.unique(dt.rows().nodes().toArray());
+	    	var getDataFn = this.s.getDataFn;
+	    	var setDataFn = this.s.setDataFn;
+	
+		for ( i=0, ien=Nodes.length ; i<ien ; i++ ) {
+			var rowData = dt.row( Nodes[i] ).data();
+			setDataFn(rowData, i+1);
+			var row = dt.row(Nodes[i]);
+			row.invalidate('data');
+		}
+  	
+  	},
 
 	/**
 	 * Emit an event on the DataTable for listeners
@@ -669,7 +703,9 @@ RowReorder.defaults = {
 	 *
 	 * @type {Boolean}
 	 */
-	update: true
+	update: true,
+	
+	reorderOnSort: false
 };
 
 
